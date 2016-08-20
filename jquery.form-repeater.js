@@ -63,9 +63,9 @@
     $.fn.repeater = function(options, data) {
         var $container = $(this),
             $btnAdd, $btnRemove, patternName, patternId, patternText,
-            idVal, nameVal, labelText, labelFor, $elem, elemName, 
+            idVal, nameVal, labelText, labelFor, $elem, elemName,
             $label, row, $newClone, $formElems;
-            
+
         $container.opts = $.extend({}, $.fn.repeater.defaults, options);
         $container.repeatCount = 0;
 
@@ -97,9 +97,13 @@
         // retrieve form elements
         $container.groupClone = $container.group.clone();
         // watch for remove
-        $container.delegate('.' + $container.opts.btnRemoveClass, 'click', $container, removeRepeater);
+        $container.on('click', '.' + $container.opts.btnRemoveClass, function(e) {
+            removeRepeater(e, $container);
+        });
         // watch for add
-        $container.delegate('.' + $container.opts.btnAddClass, 'click', $container, addRepeater);
+        $container.on('click', '.' + $container.opts.btnAddClass, function() {
+           addRepeater($container);
+        });
 
         // allows for initial population of form data
         if (data && data.length) {
@@ -114,7 +118,7 @@
                     $newClone = $container.opts.beforeAdd.call(this, $newClone);
                 }
 
-                $formElems = $newClone.find(':input');
+                $formElems = $newClone.find('input, textarea, select, button');
 
 
                 if ($formElems.length) {
@@ -127,7 +131,7 @@
                         if (typeof data[row][elemName] != 'undefined') {
                             if($elem.is('input[type="checkbox"]')) {
                                 if(data[row][elemName] === '' || data[row][elemName] === '1') {
-                                    $elem.attr('checked', true);
+                                    $elem.attr('checked', true)
                                 }
                             }
                             else {
@@ -135,7 +139,7 @@
                             }
                         } else {
                             if($elem.is('input[type="checkbox"]')) {
-                                $elem.attr('checked', false);
+                                $elem.attr('checked', null)
                             }
                             else {
                                 $elem.val('');
@@ -206,22 +210,18 @@
      * Add a new repeater.
      */
     function addRepeater(data) {
-        var container = data.data,
+        var container = data,
             tmpCount = container.repeatCount + 1,
             $doppleganger = container.groupClone.clone();
-
         if ($.isFunction(container.opts.beforeAdd)) {
             $doppleganger = container.opts.beforeAdd.call(this, $doppleganger);
         }
-
         // don't exceed the max allowable items
         if (container.opts.maxItems > 0 && container.repeatCount == container.opts.maxItems) {
             alert('You have hit the maximum allowable items.');
             return false;
         }
-
         _reindex($doppleganger, tmpCount, container);
-
         // ensure remove button is showing
         $doppleganger.find('.' + container.opts.btnRemoveClass).show();
 
@@ -246,32 +246,33 @@
     /**
      * Remove a repeater.
      */
-    function removeRepeater(data) {
+    function removeRepeater(e, data) {
         var $btn = $(this),
-            container = data.data,
+            container = data,
             $repeaters = container.find('.' + container.opts.groupClass),
             numRepeaters = $repeaters.length,
             $match;
-
         if (numRepeaters <= container.opts.minItems) {
             return false;
         }
-
         // check if removing a specific repeater instance
+        $btn = $(e.target);
+
         $match = $btn.closest('.' + container.opts.groupClass);
+
         if (!$match.length) {
             // determine if removing first or last repeater
             if (container.opts.repeatMode == 'append') {
-                var $match = $repeaters.filter(':last');
+                var $match = $repeaters[$repeaters.length - 1];
             } else if (container.opts.repeatMode == 'prepend') {
-                var $match = $repeaters.filter(':first');
+                var $match = $repeaters[0];
             } else if (container.opts.repeatMode == 'insertAfterLast') {
-                var $match = $repeaters.filter(':last');
+                var $match = $repeaters[$repeaters.length - 1];
             }
         }
 
         // ensure we have a match
-        if ($match.length) {
+        if (typeof $match !== 'undefined') {
             // remove the repeater
             if (container.opts.animation) {
                 if (container.opts.animation == 'slide') {
@@ -300,7 +301,7 @@
      */
     function parsePattern(pattern, replaceText, count, container) {
         var returnVal = replaceText;
-        
+
         count = parseInt(count);
         if (pattern) {
             // check pattern type
@@ -323,7 +324,7 @@
      * Wrapper to handle re-indexing form elements in a group.
      */
     function reindex(container) {
-        var $repeaters = container.find('.' + container.opts.groupClass), 
+        var $repeaters = container.find('.' + container.opts.groupClass),
             startIndex = container.opts.startingIndex,
             $curGroup;
 
@@ -360,11 +361,10 @@
      * Handle reindexing each form element in a group.
      */
     function _reindex($curGroup, index, container) {
-        var $formElems = $curGroup.find(':input'),
+        var $formElems = $curGroup.find('input, textarea, select, button'),
             patternName, patternId, patternText,
             idVal, nameVal, $label, labelText, labelFor,
             $elem;
-
         if ($formElems.length) {
             $formElems.each(function() {
                 $elem = $(this);
@@ -377,10 +377,10 @@
 
                     if($elem.is('input[type="checkbox"]')) {
                         if($elem.prop('checked')) {
-                            $elem.attr('checked', true);
+                            $elem.attr('checked', true)
                         }
                         else {
-                            $elem.attr('checked', false);
+                            $elem.attr('checked', null)
                         }
                     }
                 }
@@ -417,7 +417,7 @@
         return $curGroup;
     }
 
-})(jQuery);
+})(window.Zepto || window.jQuery);
 
 // default values
 $.fn.repeater.defaults = {
